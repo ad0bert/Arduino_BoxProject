@@ -3,8 +3,10 @@
 LookUp::LookUp(float weight){
   int pos = -1;
   for (int i = 0; i < TABLE_SIZE; ++i){
-    if (PRODUCT_TABLE[i][1].min > weight && PRODUCT_TABLE[i][1].max < weight)
+    if (PRODUCT_TABLE[i][1].min < weight && PRODUCT_TABLE[i][1].max > weight){
       pos = i;
+      break;
+    }
   }
   
   if (pos != -1){
@@ -16,6 +18,9 @@ LookUp::LookUp(float weight){
     
     mTemp.min = PRODUCT_TABLE[pos][2].min;
     mTemp.max = PRODUCT_TABLE[pos][2].max;
+    
+    mVib.min = PRODUCT_TABLE[pos][3].min;
+    mVib.max = PRODUCT_TABLE[pos][3].max;
   } else {
     mLight.min = -1;
     mLight.max = -1;
@@ -25,6 +30,9 @@ LookUp::LookUp(float weight){
     
     mTemp.min = -1;
     mTemp.max = -1;
+    
+    mVib.min = -1;
+    mVib.max = -1;
   }
 }
 
@@ -42,6 +50,15 @@ int  LookUp::getCount(float weight){
 short LookUp::checkLight(float light){
   if (light < mLight.min) return -1;
   if (light > mLight.max) return  1;
+  return 0;
+}
+
+short LookUp::checkVib(float vib){
+  if (mVib.max == 0) return 1;
+  if (vib < mVib.min){ 
+    mVib.max = 0;
+    return  1;
+  }
   return 0;
 }
 

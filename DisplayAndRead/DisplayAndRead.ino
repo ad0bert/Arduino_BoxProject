@@ -1,4 +1,9 @@
-#include "ReadTemp.h"
+#include "Wire.h"
+#include "ReadAnalog.h"
+#include "LookUp.h"
+
+#define SHAKE 0
+
 int segPins[8] = {5,6,7,8,9,10,11,12};
   
 int numbers[10][8]  = {{1,1,1,1,1,0,1,0}, // zero
@@ -17,7 +22,9 @@ int dataPin = 2;
 
 byte data;
 
-ReadTemp *rt;
+ReadAnalog *ra;
+LookUp *lu;
+
 const int nbrDigits= 4;
 
 void showNumber( int number){
@@ -55,8 +62,9 @@ void showDigit( int number, int digit)
 void setup() {
   pinMode(latchPin, OUTPUT);
   Serial.begin(9600);
-  rt = new ReadTemp(A0);
-  
+  Wire.begin(8); // listen on A5
+  Wire.onReceive(recive);
+  ra = new ReadAnalog(A0);
   for (int i = 0; i < 8; ++i){
     pinMode(segPins[i], OUTPUT);
     digitalWrite(segPins[i], LOW);
@@ -64,12 +72,47 @@ void setup() {
 }
 
 void loop() {
-  float temp = rt->getTemp();
+  float val = 0;
+  #if SHAKE == 1
+  val = ra->readShake();
+  #else
+  val = ra->getTemp();
+  #endif
+  
   delay(5);
-  if (temp > 24.0 && temp < 25.0) data = 0x0B;
-  else if (temp > 25.0) data = 0x07;
-  else if (temp < 24.0) data = 0x0D;
-  showNumber(temp);
+  int ret = -1;
+  #if SHAKE == 1
+  if (lu != NULL) ret = lu->checkTemp(val);
+  #else
+  if (lu != NULL) ret = lu->checkVib(val);
+  #endif
+  
+  if      (ret ==  0) data = 0x0B;
+  else if (ret ==  1) data = 0x07;
+  else if (ret == -1) data = 0x0D;
+  
+  showNumber(val);
+}
+
+void recive(int number){
+  static float lastInput = -1;
+  String i2cRec = "";
+  while (Wire.available()){
+    i2cRec += Wire.read();
+  }
+  char buffer[10];
+  i2cRec.toCharArray(buffer, 10); 
+  float res = atof(buffer);
+  
+  if (lastInput == 0){
+     if (lu == NULL)
+       lu = new LookUp(res);
+     if (lu->getCount(res) == 0)
+       delete lu;
+       lu = NULL;
+  }
+  lastInput = res;
+  
 }
 
 void shiftOut(int myDataPin, int myClockPin, byte myDataOut) {
