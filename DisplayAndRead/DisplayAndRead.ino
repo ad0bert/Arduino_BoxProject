@@ -12,7 +12,7 @@ int numbers[10][8]  = {{1,1,1,1,1,0,1,0}, // zero
                        {1,0,1,0,1,0,1,1}, // three
                        {0,1,1,0,0,0,1,1}, // four
                        {1,1,0,0,1,0,1,1}, // five
-                       {1,0,0,1,1,0,1,1}, // six
+                       {1,1,0,1,1,0,1,1}, // six
                        {1,0,1,0,0,0,1,0}, // seven
                        {1,1,1,1,1,0,1,1}, // eight
                        {1,1,1,0,1,0,1,1}};// nine
@@ -21,6 +21,8 @@ int clockPin = 4;
 int dataPin = 2;
 
 byte data;
+
+float val = 0;
 
 ReadAnalog *ra;
 LookUp *lu;
@@ -72,7 +74,6 @@ void setup() {
 }
 
 void loop() {
-  float val = 0;
   #if SHAKE == 1
   val = ra->readShake();
   #else
@@ -82,9 +83,9 @@ void loop() {
   delay(5);
   int ret = -1;
   #if SHAKE == 1
-  if (lu != NULL) ret = lu->checkTemp(val);
-  #else
   if (lu != NULL) ret = lu->checkVib(val);
+  #else
+  if (lu != NULL) ret = lu->checkTemp(val);
   #endif
   
   if      (ret ==  0) data = 0x0B;
@@ -107,9 +108,10 @@ void recive(int number){
   if (lastInput == 0){
      if (lu == NULL)
        lu = new LookUp(res);
-     if (lu->getCount(res) == 0)
+     if (lu->getCount(res) == 0){
        delete lu;
        lu = NULL;
+     }
   }
   lastInput = res;
   
